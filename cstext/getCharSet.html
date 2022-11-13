@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <style>
+            body {
+                background-color: rgba(0,0,0,100%);
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="workCanvas"></canvas>
+        <script src="js/jquery.min.js"></script>
+        <script>
+        function getWhitePlace(imgData) {
+            let startP;
+            let whiteNum = 0;
+            for(let i=0;i<imgData.height;i++) {
+                startP = i*imgData.width*4;
+                for(let j=0;j<imgData.width;j++) {
+                    // 白色
+                    if(imgData.data[startP + j*4]==255) {
+                        whiteNum++;
+                    }
+                }
+            }
+            // 0到1的小数,为百分数
+            return (whiteNum*100)/(imgData.width*imgData.height);
+        }
+        function getCharSet() {
+            let chars = "qazwsxedcrfvtgbyhnujmikolpQAZWSXEDCRFVTGBYHNUJMIKOLP1234567890`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>? ";
+            // let chars = "qazwsxedcrfvtgbyhnujmikolpQAZWSXEDCRFVTGBYHNUJMIKOLP1234567890 ";
+            // 初始化
+            let workCanvas = $("#workCanvas").get(0);
+            $(workCanvas).css({
+                "width": 200,
+                "height": 200
+            });
+            workCanvas.width = 20;
+            workCanvas.height = 20;
+            
+            let ctx = workCanvas.getContext("2d");
+            
+            /* let charInfo = [];
+            // 这个是根据字母表
+            for(let i=0;i<chars.length;i++) {
+                ctx.fillStyle="rgba(255,255,255,100%)";
+                ctx.fillRect(0,0,20,20);
+                ctx.fillStyle="rgba(0,0,0,100%)";
+                ctx.font = "12px monospace";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(chars[i], 10, 10);
+                charInfo[i] = [chars[i], getWhitePlace(ctx.getImageData(0, 0, workCanvas.width, workCanvas.height))];
+                $("body").append($("<img>").attr("src", workCanvas.toDataURL("image/png")));
+            } */
+            // 这个是根据Unicode生成
+            let promiseList = [];
+            for(let i=19968;i<=40917;i++) {
+                promiseList.push(new Promise(function (resolve, reject) {
+                    let char = String.fromCharCode(i);
+                    ctx.fillStyle="rgba(255,255,255,100%)";
+                    ctx.fillRect(0,0,20,20);
+                    ctx.fillStyle="rgba(0,0,0,100%)";
+                    ctx.font = "12px monospace";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(char, 10, 10);
+                    $("body").append($("<img>").attr("src", workCanvas.toDataURL("image/png")));
+                    console.log(char, i); 
+                    resolve([char, getWhitePlace(ctx.getImageData(0, 0, workCanvas.width, workCanvas.height))]);
+                }));
+            }
+            Promise.all(promiseList).then(function (charInfo) {
+                // 随手写一个选择排序
+                for(let i=0;i<charInfo.length-1;i++) {
+                    for(let j=i+1;j<charInfo.length;j++) {
+                        if(charInfo[i][1]>charInfo[j][1]) {
+                            let temp = charInfo[j];
+                            charInfo[j] = charInfo[i];
+                            charInfo[i] = temp;
+                        }
+                    }
+                }
+                console.log(charInfo);
+                let charSet = "";
+                for(let i=0;i<charInfo.length;i++) {
+                    charSet += charInfo[i][0];
+                }
+                console.log(charSet);
+                
+                let getNum = 20;
+                let area = (charInfo[charInfo.length-1][1] - charInfo[0][1]) / getNum;
+                let a = [charInfo[0][1]];
+                let b = [];
+                let c = [];
+                b[0] = Infinity;
+                for(let i=1;i<getNum;i++) {
+                    a[i] = a[i-1]+area;
+                    b[i] = Infinity;
+                }
+                for(let i=0;i<charInfo.length;i++) {
+                    for(let j=0;j<getNum;j++) {
+                        if(Math.abs(charInfo[i][1]-a[j]) < b[j]&&c[j-1]!=charInfo[i][0]) {
+                            b[j] = Math.abs(charInfo[i][1]-a[j]);
+                            c[j] = charInfo[i][0];
+                        }
+                    }
+                }
+                console.log(a,b,c);
+                charSet = "";
+                for(let i=0;i<getNum;i++) {
+                    charSet += c[i];
+                }
+                console.log(charSet);
+            });
+        }
+        getCharSet();
+        </script>
+    </body>
+</html>
